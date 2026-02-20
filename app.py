@@ -83,7 +83,7 @@ def main():
         # --- Date Range Picker ---
         st.markdown(
             f'<p style="color:{COLORS["text_muted"]};font-size:11px;font-weight:700;'
-            f'text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Tarih Aralığı</p>',
+            f'text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📅 Date Range</p>',
             unsafe_allow_html=True,
         )
 
@@ -97,27 +97,27 @@ def main():
         # Quick presets — set the DATE INPUT widget keys directly
         preset_cols = st.columns(3)
         with preset_cols[0]:
-            if st.button("Son 7 Gün", key="preset_7d", use_container_width=True):
+            if st.button("Last 7 Days", key="preset_7d", use_container_width=True):
                 st.session_state["date_input_end"] = _today - timedelta(days=1)
                 st.session_state["date_input_start"] = st.session_state["date_input_end"] - timedelta(days=6)
                 st.rerun()
         with preset_cols[1]:
-            if st.button("Son 14 Gün", key="preset_14d", use_container_width=True):
+            if st.button("Last 14 Days", key="preset_14d", use_container_width=True):
                 st.session_state["date_input_end"] = _today - timedelta(days=1)
                 st.session_state["date_input_start"] = st.session_state["date_input_end"] - timedelta(days=13)
                 st.rerun()
         with preset_cols[2]:
-            if st.button("Son 30 Gün", key="preset_30d", use_container_width=True):
+            if st.button("Last 30 Days", key="preset_30d", use_container_width=True):
                 st.session_state["date_input_end"] = _today - timedelta(days=1)
                 st.session_state["date_input_start"] = st.session_state["date_input_end"] - timedelta(days=29)
                 st.rerun()
 
         date_start = st.date_input(
-            "Başlangıç",
+            "Start",
             key="date_input_start",
         )
         date_end = st.date_input(
-            "Bitiş",
+            "End",
             key="date_input_end",
         )
 

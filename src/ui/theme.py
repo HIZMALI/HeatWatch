@@ -78,34 +78,47 @@ def get_custom_css() -> str:
 
         /* ===== RADIO BUTTONS (Navigation) ===== */
         div[data-testid="stRadio"] > div[role="radiogroup"] {{
-            gap: 2px !important;
+            gap: 6px !important;
         }}
         div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
-            color: {COLORS['text_secondary']} !important;
-            font-size: 15px !important;
-            padding: 10px 14px !important;
+            background: transparent !important;
+            padding: 12px 16px !important;
             border-radius: 8px !important;
             transition: all 0.2s ease !important;
             cursor: pointer !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 4px !important;
-            white-space: nowrap !important;
-            overflow: hidden !important;
+            border-left: 3px solid transparent !important;
         }}
         /* Hide the default radio circle */
         div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {{
             display: none !important;
         }}
-        div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {{
-            background: {COLORS['bg_card']} !important;
-            color: {COLORS['text_primary']} !important;
+        /* Structure the inner text div to align icons and text properly */
+        div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child {{
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
         }}
-        div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {{
-            background: {COLORS['accent_blue']}20 !important;
-            color: {COLORS['accent_blue']} !important;
+        /* Style the actual text */
+        div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child > div > p {{
+            font-size: 16px !important;
             font-weight: 600 !important;
+            color: #ffffff !important; /* Pure white for maximum readability */
+            display: flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+            white-space: pre-wrap !important;
+        }}
+        div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {{
+            background: {COLORS['bg_card_hover']} !important;
+        }}
+        /* Selected State */
+        div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {{
+            background: {COLORS['accent_blue']}25 !important;
             border-left: 3px solid {COLORS['accent_blue']} !important;
+        }}
+        div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) > div:last-child > div > p {{
+            color: {COLORS['accent_cyan']} !important;
+            font-weight: 700 !important;
         }}
 
         /* ===== BUTTONS ===== */
@@ -138,17 +151,33 @@ def get_custom_css() -> str:
             background-color: {COLORS['bg_card']} !important;
             border: 1px solid {COLORS['border']} !important;
             border-radius: 8px !important;
-            color: {COLORS['text_primary']} !important;
+            color: #ffffff !important;
+            font-size: 14px !important;
         }}
-        div[data-baseweb="popover"] > div {{
+        /* Dropdown popover container (aggressive to fix white background) */
+        div[data-baseweb="popover"],
+        div[data-baseweb="popover"] > div,
+        div[data-baseweb="popover"] ul,
+        ul[role="listbox"],
+        div[role="listbox"],
+        ul[data-testid="stSelectboxVirtualDropdown"] {{
             background-color: {COLORS['bg_card']} !important;
-            border: 1px solid {COLORS['border']} !important;
+            border-color: {COLORS['border']} !important;
         }}
-        ul[data-testid="stSelectboxVirtualDropdown"] li {{
-            color: {COLORS['text_primary']} !important;
+        /* Dropdown items (options) */
+        ul[role="listbox"] li,
+        ul[data-testid="stSelectboxVirtualDropdown"] li,
+        div[role="option"] {{
+            color: #ffffff !important;
+            font-size: 14px !important;
+            padding: 10px 16px !important;
+            background-color: {COLORS['bg_card']} !important; 
         }}
-        ul[data-testid="stSelectboxVirtualDropdown"] li:hover {{
-            background-color: {COLORS['accent_blue']}20 !important;
+        ul[role="listbox"] li:hover,
+        ul[data-testid="stSelectboxVirtualDropdown"] li:hover,
+        div[role="option"]:hover {{
+            background-color: {COLORS['accent_blue']}40 !important;
+            color: #ffffff !important;
         }}
 
         /* Multi-select tags */
