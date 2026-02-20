@@ -198,7 +198,8 @@ def map_panel(geojson_data: Dict, vuln_df: pd.DataFrame, layer_mode: str = "Vuln
     st_folium(m, use_container_width=True, height=400, returned_objects=[])
 
 
-def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[str, Any]):
+def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[str, Any], compact: bool = False):
+
     """Render the actions panel with tabs and action rows."""
     st.markdown(
         f'<div style="color:{COLORS["text_primary"]};font-size:16px;font-weight:600;margin-bottom:12px;'
@@ -240,76 +241,32 @@ def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[st
                 )
                 st.markdown(html, unsafe_allow_html=True)
 
-    # Action buttons
-    st.markdown("", unsafe_allow_html=True)
+    # ── Shortcut buttons ──────────────────────────────────────
+    def _open_sms():
+        st.session_state["sms_open"] = True
+        st.session_state["sms_sent"] = False
+        st.session_state["nav_page"] = "📋  Actions & Playbooks"
+
+    def _open_briefing():
+        st.session_state["briefing_open"] = True
+        st.session_state["nav_page"] = "📋  Actions & Playbooks"
+
+    st.markdown("")
     col1, col2 = st.columns(2)
-
     with col1:
-        if st.button("📱 Send SMS Alert", use_container_width=True, key="btn_sms"):
-            st.session_state["show_sms"] = True
-
+        st.button(
+            "📱 Send SMS Alert",
+            key="btn_sms",
+            use_container_width=True,
+            on_click=_open_sms,
+        )
     with col2:
-        if st.button("📋 Generate Briefing Note", use_container_width=True, key="btn_briefing"):
-            st.session_state["show_briefing"] = True
-
-    # SMS Modal
-    if st.session_state.get("show_sms", False):
-        from src.actions.playbooks import generate_sms_alert
-        alert_level = kpis.get("kpis", {}).get("alert_level", {}).get("value", "WARNING")
-
-        st.markdown(
-            f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};'
-            f'border-radius:10px;padding:16px 20px;margin-top:12px;">'
-            f'<div style="color:{COLORS["accent_cyan"]};font-size:14px;font-weight:700;margin-bottom:12px;">'
-            f'📱 SMS Alert Templates</div>',
-            unsafe_allow_html=True,
+        st.button(
+            "📋 Generate Briefing Note",
+            key="btn_briefing",
+            use_container_width=True,
+            on_click=_open_briefing,
         )
-        tab_pub, tab_eld = st.tabs(["Public Alert", "65+ Targeted"])
-        with tab_pub:
-            sms_text = generate_sms_alert(alert_level, kpis, target="public")
-            st.markdown(
-                f'<pre style="background:{COLORS["bg_dark"]};color:{COLORS["text_primary"]};'
-                f'border:1px solid {COLORS["border"]};border-radius:8px;padding:16px;'
-                f'font-size:13px;line-height:1.7;font-family:monospace;white-space:pre-wrap;'
-                f'margin:0;">{sms_text}</pre>',
-                unsafe_allow_html=True,
-            )
-        with tab_eld:
-            sms_text_eld = generate_sms_alert(alert_level, kpis, target="elderly")
-            st.markdown(
-                f'<pre style="background:{COLORS["bg_dark"]};color:{COLORS["text_primary"]};'
-                f'border:1px solid {COLORS["border"]};border-radius:8px;padding:16px;'
-                f'font-size:13px;line-height:1.7;font-family:monospace;white-space:pre-wrap;'
-                f'margin:0;">{sms_text_eld}</pre>',
-                unsafe_allow_html=True,
-            )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # Briefing Modal
-    if st.session_state.get("show_briefing", False):
-        from src.actions.playbooks import generate_briefing_note
-
-        top_districts = []
-        if "vuln_df" in st.session_state:
-            top_districts = (
-                st.session_state["vuln_df"]
-                .sort_values("vulnerability_score", ascending=False)["district_name"]
-                .tolist()[:5]
-            )
-
-        note = generate_briefing_note(kpis, top_districts, actions_by_tab)
-        st.markdown(
-            f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};'
-            f'border-radius:10px;padding:16px 20px;margin-top:12px;">'
-            f'<div style="color:{COLORS["accent_cyan"]};font-size:14px;font-weight:700;margin-bottom:12px;">'
-            f'📋 Briefing Note</div>'
-            f'<pre style="background:{COLORS["bg_dark"]};color:{COLORS["text_primary"]};'
-            f'border:1px solid {COLORS["border"]};border-radius:8px;padding:16px;'
-            f'font-size:12px;line-height:1.6;font-family:monospace;white-space:pre-wrap;'
-            f'margin:0;">{note}</pre></div>',
-            unsafe_allow_html=True,
-        )
-
 
 def trend_chart_env(df_env: pd.DataFrame):
     """Render environmental trends chart with Plotly."""

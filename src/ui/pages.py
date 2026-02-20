@@ -388,6 +388,96 @@ def render_actions_playbooks(kpis: Dict[str, Any], df_vuln: pd.DataFrame):
     all_actions = get_all_actions(alert_level, drivers_list, top_districts, icu_strain)
     actions_panel(all_actions, kpis)
 
+    st.markdown("---")
+    st.markdown("### 📱 Dispatch Center")
+    st.caption("Send alerts and briefing notes to relevant stakeholders.")
+
+    from src.actions.playbooks import generate_sms_alert, generate_briefing_note
+
+    # ── Callback functions for buttons ────────────────────────
+    def _do_send_sms():
+        st.session_state["sms_sent"] = True
+
+    def _do_reset_sms():
+        st.session_state["sms_sent"] = False
+
+    def _do_send_briefing():
+        st.session_state["briefing_sent"] = True
+
+    def _do_reset_briefing():
+        st.session_state["briefing_sent"] = False
+
+    sms_col, brief_col = st.columns(2)
+
+    # ── SMS DISPATCH ──────────────────────────────────────────
+    with sms_col:
+        st.markdown("**📱 SMS Alert**")
+
+        template_target = st.radio(
+            "Target Audience",
+            ["🏙️ Public (General)", "👴 65+ Elderly"],
+            key="sms_template_target",
+            horizontal=True,
+        )
+        target_key = "elderly" if "Elderly" in template_target else "public"
+        sms_text = generate_sms_alert(alert_level, kpis, target=target_key)
+
+        st.text_area(
+            "Message Preview",
+            value=sms_text,
+            height=180,
+            key="sms_preview_ta",
+            label_visibility="collapsed",
+        )
+
+        recipients = {"🏙️ Public (General)": "142,600", "👴 65+ Elderly": "18,450"}
+        rec_count = recipients.get(template_target, "—")
+        st.caption(f"Recipients: **{rec_count} subscribers**")
+
+        if st.session_state.get("sms_sent", False):
+            st.success("✅ SMS alert dispatched successfully!")
+            st.button("↺ Reset", key="sms_reset_btn", on_click=_do_reset_sms)
+        else:
+            st.button(
+                "🚀 Send SMS Alert Now",
+                key="send_sms_now",
+                use_container_width=True,
+                type="primary",
+                on_click=_do_send_sms,
+            )
+
+    # ── BRIEFING NOTE ─────────────────────────────────────────
+    with brief_col:
+        st.markdown("**📋 Briefing Note**")
+
+        note = generate_briefing_note(kpis, top_districts, all_actions)
+        with st.expander("📄 View Briefing Note", expanded=st.session_state.get("briefing_open", False)):
+            st.text_area(
+                "Briefing Note Content",
+                value=note,
+                height=200,
+                key="briefing_ta",
+                label_visibility="collapsed",
+            )
+
+        st.caption("Send to: **Municipal Health Authority**")
+
+        if st.session_state.get("briefing_sent", False):
+            st.success("✅ Briefing Note sent successfully!")
+            st.button("↺ Reset", key="brief_reset_btn", on_click=_do_reset_briefing)
+        else:
+            st.button(
+                "📤 Send Briefing Note",
+                key="send_briefing_now",
+                use_container_width=True,
+                on_click=_do_send_briefing,
+            )
+
+    # Reset open flags after first render
+    st.session_state.pop("sms_open", None)
+    st.session_state.pop("briefing_open", None)
+
+
 
 def render_data_ethics(kpis: Dict[str, Any]):
     """Render Data & Ethics page."""

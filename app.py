@@ -45,35 +45,48 @@ def main():
         initial_sidebar_state="expanded",
     )
 
+    # ── Pre-initialize all custom session state keys ──────────
+    _defaults = {
+        "sms_open": False,
+        "sms_sent": False,
+        "briefing_open": False,
+        "briefing_sent": False,
+    }
+    for _k, _v in _defaults.items():
+        if _k not in st.session_state:
+            st.session_state[_k] = _v
+
     # Inject custom CSS
     st.markdown(get_custom_css(), unsafe_allow_html=True)
 
     # --- Sidebar ---
     with st.sidebar:
-        # Logo & title
+        # Logo & title — clicking natively navigates to root (Overview)
         st.markdown(
-            f'<div style="text-align:center;padding:20px 0 8px 0;">'
+            f'<a href="/" target="_self" style="text-decoration:none; display:block; text-align:center; padding:16px 0 4px 0;">'
             f'<div style="font-size:28px;margin-bottom:4px;">🌡️</div>'
             f'<h2 style="color:{COLORS["accent_cyan"]};margin:0;font-size:20px;font-weight:700;">HEATWATCH+</h2>'
             f'<p style="color:{COLORS["text_muted"]};font-size:11px;margin:4px 0 0 0;">'
-            f'Heat-Respiratory Risk Intelligence</p></div>',
+            f'Heat-Respiratory Risk Intelligence</p>'
+            f'</a>',
             unsafe_allow_html=True,
         )
 
         st.markdown("---")
 
         # Navigation menu
+        _nav_options = [
+            "🏠  Overview",
+            "🌡️  Heat & Air",
+            "🫁  Respiratory Signals",
+            "🏥  ICU / Capacity",
+            "📋  Actions & Playbooks",
+            " 🔒  Data & Ethics",
+            "⚙️  Settings",
+        ]
         page = st.radio(
             "Navigation",
-            [
-                "🏠  Overview",
-                "🌡️  Heat & Air",
-                "🫁  Respiratory Signals",
-                "🏥  ICU / Capacity",
-                "📋  Actions & Playbooks",
-                "🔒  Data & Ethics",
-                "⚙️  Settings",
-            ],
+            _nav_options,
             key="nav_page",
             label_visibility="collapsed",
         )
@@ -166,7 +179,10 @@ def main():
     if start_dt >= end_dt:
         end_dt = start_dt + timedelta(days=7)
 
-    df_env, df_micro = fetch_real_data_cached(start_dt, end_dt)
+    # Cache key uses strings — ensures cache invalidation when dates change
+    date_key_start = start_dt.strftime("%Y-%m-%d")
+    date_key_end = end_dt.strftime("%Y-%m-%d")
+    df_env, df_micro = fetch_real_data_cached(date_key_start, date_key_end)
 
     # Load static data
     df_vuln = load_vuln_data()
@@ -234,10 +250,13 @@ def main():
         render_overview(kpis, df_env_scaled, df_micro_scaled, df_vuln_filtered, geojson_filtered)
 
 
-@st.cache_data(ttl=300)
-def fetch_real_data_cached(_start_dt, _end_dt):
-    """Fetch real data with 5-minute cache."""
-    return fetch_and_prepare(_start_dt, _end_dt)
+@st.cache_data
+def fetch_real_data_cached(start_key: str, end_key: str):
+    """Fetch real data cached by date string keys — ensures fresh data on every date change."""
+    from datetime import datetime as _dt
+    start_dt = _dt.strptime(start_key, "%Y-%m-%d")
+    end_dt = _dt.strptime(end_key, "%Y-%m-%d")
+    return fetch_and_prepare(start_dt, end_dt)
 
 
 @st.cache_data

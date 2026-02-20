@@ -197,14 +197,48 @@ def get_custom_css() -> str:
             border: 1px solid {COLORS['border']} !important;
             border-radius: 6px !important;
         }}
-        /* Date picker calendar popup */
-        div[data-baseweb="popover"] {{
+
+        /* ===== DATE PICKER CALENDAR - FULL DARK OVERRIDE ===== */
+        div[data-baseweb="calendar"],
+        div[data-baseweb="datepicker"],
+        div[data-baseweb="calendar"] > div,
+        [data-baseweb="calendar"] * {{
             background-color: {COLORS['bg_card']} !important;
+            color: #ffffff !important;
         }}
-        div[data-baseweb="calendar"] {{
+        /* Day cells */
+        div[data-baseweb="calendar"] button {{
             background-color: {COLORS['bg_card']} !important;
-            color: {COLORS['text_primary']} !important;
+            color: #ffffff !important;
+            border: none !important;
         }}
+        div[data-baseweb="calendar"] button:hover {{
+            background-color: {COLORS['accent_blue']}60 !important;
+            color: #ffffff !important;
+        }}
+        /* Selected day */
+        div[data-baseweb="calendar"] [aria-selected="true"],
+        div[data-baseweb="calendar"] [aria-selected="true"] * {{
+            background-color: {COLORS['accent_blue']} !important;
+            color: #ffffff !important;
+        }}
+        /* Month/year header text */
+        div[data-baseweb="calendar"] [data-baseweb="typo-label-medium"],
+        div[data-baseweb="calendar"] [data-baseweb="typo-paragraph-medium"],
+        div[data-baseweb="calendar"] span {{
+            color: #ffffff !important;
+        }}
+        /* Day-of-week labels (Mon, Tue, etc.) */
+        div[data-baseweb="calendar"] [role="columnheader"] {{
+            color: {COLORS['text_muted']} !important;
+        }}
+        /* Popover wrapper */
+        div[data-baseweb="popover"] > div {{
+            background-color: {COLORS['bg_card']} !important;
+            border: 1px solid {COLORS['border']} !important;
+            border-radius: 10px !important;
+        }}
+
 
         /* ===== TABS ===== */
         .stTabs [data-baseweb="tab-list"] {{
@@ -348,13 +382,13 @@ def get_plotly_layout(title: str = "") -> dict:
     """Get consistent Plotly layout for dark theme."""
     return {
         "template": "plotly_dark",
-        "paper_bgcolor": COLORS["bg_card"],
-        "plot_bgcolor": COLORS["bg_card"],
+        "paper_bgcolor": "rgba(0,0,0,0)",
+        "plot_bgcolor": "rgba(0,0,0,0)",
         "title": {
             "text": title,
             "font": {"color": COLORS["text_primary"], "size": 14},
         },
-        "font": {"color": COLORS["text_secondary"], "size": 11},
+        "font": {"color": COLORS["text_primary"], "family": "Inter, sans-serif"},
         "xaxis": {
             "gridcolor": COLORS["border"],
             "linecolor": COLORS["border"],
@@ -363,7 +397,12 @@ def get_plotly_layout(title: str = "") -> dict:
             "gridcolor": COLORS["border"],
             "linecolor": COLORS["border"],
         },
-        "margin": {"l": 50, "r": 20, "t": 40, "b": 40},
+        "margin": {"l": 40, "r": 20, "t": 50, "b": 40},
+        "hovermode": "x unified",
+        "hoverlabel": {
+            "bgcolor": COLORS["bg_card"],
+            "font": {"color": "#ffffff", "size": 13, "family": "Inter, sans-serif"}
+        },
         "legend": {
             "orientation": "h",
             "yanchor": "bottom",

@@ -23,12 +23,9 @@ def fetch_real_weather(start_date: datetime, end_date: datetime) -> pd.DataFrame
 
 
 def _generate_pattern_data(start_date: datetime, end_date: datetime) -> pd.DataFrame:
-    """Fallback: generate realistic pattern data for any date range."""
+    """Fallback: generate realistic pattern data for any date range deterministically based on date."""
     n_days = (end_date - start_date).days + 1
     dates = [start_date + timedelta(days=i) for i in range(n_days)]
-
-    rng = np.random.RandomState(42)
-    month = start_date.month
 
     # Seasonal base temperatures for Ankara
     seasonal_base = {
@@ -36,13 +33,32 @@ def _generate_pattern_data(start_date: datetime, end_date: datetime) -> pd.DataF
         5: (23, 11), 6: (28, 15), 7: (32, 18), 8: (33, 18),
         9: (28, 13), 10: (21, 8), 11: (13, 3), 12: (7, 0),
     }
-    base_high, base_low = seasonal_base.get(month, (30, 18))
 
-    # Add daily variation with slight trend
-    temps = [round(base_high + rng.normal(0, 2) + 2 * np.sin(2 * np.pi * i / n_days), 1) for i in range(n_days)]
-    nighttime = [round(base_low + rng.normal(0, 1.5) + 1.5 * np.sin(2 * np.pi * i / n_days), 1) for i in range(n_days)]
-    humidity = [round(max(10, min(60, 35 + rng.normal(0, 5) - 0.5 * (t - base_high))), 1) for t in temps]
-    pm25 = [round(max(10, 15 + (t - 25) * 2.5 + rng.normal(0, 4)), 1) for t in temps]
+    temps = []
+    nighttime = []
+    humidity = []
+    pm25 = []
+
+    for d in dates:
+        # Use exact date to deterministically seed rng
+        rng = np.random.RandomState(d.toordinal())
+        month = d.month
+        base_high, base_low = seasonal_base.get(month, (30, 18))
+
+        # Date-based wave so it shifts meaningfully across the year
+        wave = np.sin(2 * np.pi * d.toordinal() / 365.25)
+
+        t = round(base_high + rng.normal(0, 2) + 2 * wave, 1)
+        nt = round(base_low + rng.normal(0, 1.5) + 1.5 * wave, 1)
+        
+        # Derived values with independent random noise
+        h = round(max(10, min(60, 35 + rng.normal(0, 5) - 0.5 * (t - base_high))), 1)
+        p = round(max(10, 15 + (t - 25) * 2.5 + rng.normal(0, 4)), 1)
+
+        temps.append(t)
+        nighttime.append(nt)
+        humidity.append(h)
+        pm25.append(p)
 
     return pd.DataFrame({
         "date": [d.strftime("%Y-%m-%d") for d in dates],
