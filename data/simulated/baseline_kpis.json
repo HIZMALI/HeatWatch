@@ -1,0 +1,43 @@
+{
+  "location": {
+    "country": "Turkey",
+    "city": "Ankara",
+    "district": "Altındağ"
+  },
+  "period": {
+    "start": "2025-08-01",
+    "end": "2025-08-24",
+    "forecast_days": 7
+  },
+  "data_mode": "real (meteostat + aqicn based)",
+  "last_update": "2026-02-20T19:22:36",
+  "kpis": {
+    "heat_respiratory_risk_index": {
+      "value": 53,
+      "level": "Med",
+      "delta_48h": 9
+    },
+    "respiratory_disease_surge_probability": {
+      "value_pct": 87,
+      "delta_48h": 7,
+      "subtitle": "COPD/asthma exacerbations + LRTIs + respiratory distress trend"
+    },
+    "combined_respiratory_stress_index": {
+      "value": 0.67,
+      "convergence": true
+    },
+    "icu_dual_load_risk": {
+      "icu_strain_pct": 31,
+      "peak_date": "2025-08-10"
+    },
+    "alert_level": {
+      "value": "EMERGENCY",
+      "reason": "Surge Probability Critical + ICU Strain Critical"
+    }
+  },
+  "drivers": [
+    "Search Spike",
+    "Pharmacy Spike",
+    "PM2.5"
+  ]
+}

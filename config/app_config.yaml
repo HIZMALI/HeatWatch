@@ -1,0 +1,31 @@
+app:
+  default_city: "Ankara"
+  default_district: "Altındağ"
+  data_mode_default: "simulated"
+  seed: 42
+
+forecast:
+  default_days: 7
+
+thresholds:
+  watch_heat_risk: 55
+  warning_heat_risk: 70
+  emergency_heat_risk: 85
+  watch_surge_prob: 35
+  warning_surge_prob: 55
+  emergency_surge_prob: 70
+  emergency_icu_strain: 30
+
+weights:
+  heat_resp_risk:
+    heat: 0.35
+    pollution: 0.25
+    vulnerability: 0.25
+    micro_signal: 0.15
+  combined_stress:
+    heat_resp: 0.6
+    surge: 0.4
+  icu:
+    base: 5
+    heat_resp_factor: 0.25
+    surge_factor: 0.15
