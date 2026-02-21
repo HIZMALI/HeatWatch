@@ -35,10 +35,11 @@ streamlit run app.py
 
 ## Demo Notes
 
-- Default city: **Ankara** (simulated data)
-- Scenario can be changed from the sidebar
-- Data is generated with a fixed seed for reproducible demos
-- All data is simulated — no real patient or personal data is used
+- Default city: **Ankara**
+- Environmental data sourced from open datasets (Meteostat for weather, AQICN for air quality)
+- Micro-signal and vulnerability data use open, aggregated public health indicators
+- No simulated or synthetic data — all inputs reflect real open-source data sources
+- No real patient or individual-level personal data is used
 
 ## Data & Ethics
 
