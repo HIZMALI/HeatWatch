@@ -56,10 +56,23 @@ def compute_heat_respiratory_risk_index(
 ) -> int:
     """
     HeatRespRisk = 0.35*Heat + 0.25*Pollution + 0.25*Vulnerability + 0.15*MicroSignal
+
+    Heat score tiered multiplier (applied before the 0.35 weight):
+      heat_score > 40 → multiplier = 1.7
+      heat_score > 30 → multiplier = 1.3
+      otherwise       → multiplier = 1.0
+
     Returns: int 0-100
     """
+    if heat_score > 40:
+        adjusted_heat = 1.7 * heat_score
+    elif heat_score > 30:
+        adjusted_heat = 1.3 * heat_score
+    else:
+        adjusted_heat = heat_score
+
     risk = (
-        0.35 * heat_score
+        0.35 * adjusted_heat
         + 0.25 * pollution_score
         + 0.25 * vulnerability_score
         + 0.15 * micro_signal_score
