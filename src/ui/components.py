@@ -42,8 +42,9 @@ def render_top_bar(kpis: Dict[str, Any]):
 
 
 def kpi_card(title: str, value: Any, subtitle: str = "", delta: str = "",
-             level: str = "", bar_value: int = 0, unit: str = ""):
-    """Render a single KPI card with value, level, delta, and risk bar."""
+             level: str = "", bar_value: int = 0, unit: str = "",
+             scale_hint: str = ""):
+    """Render a single KPI card with value, level, delta, risk bar, and optional scale hint."""
     level_color = LEVEL_COLORS.get(level, COLORS["text_secondary"])
 
     # Value color based on risk
@@ -56,6 +57,14 @@ def kpi_card(title: str, value: Any, subtitle: str = "", delta: str = "",
             value_color = COLORS["risk_low"]
     else:
         value_color = COLORS["text_primary"]
+
+    # Scale hint line (e.g. "Scale: 0–100 normalized composite index")
+    scale_html = ""
+    if scale_hint:
+        scale_html = (
+            f'<div style="font-size:9px;color:{COLORS["text_muted"]};margin-top:2px;'
+            f'font-style:italic;opacity:0.7;">{scale_hint}</div>'
+        )
 
     # Build HTML parts
     level_html = ""
@@ -78,12 +87,15 @@ def kpi_card(title: str, value: Any, subtitle: str = "", delta: str = "",
     if bar_value > 0:
         marker_pos = max(0, min(98, bar_value))
         bar_html = (
+            f'<div style="margin-top:6px;">'
             f'<div style="width:100%;height:6px;background:linear-gradient(to right,'
             f'{COLORS["gradient_green"]} 0%,{COLORS["gradient_yellow"]} 33%,'
             f'{COLORS["gradient_orange"]} 66%,{COLORS["gradient_red"]} 100%);'
-            f'border-radius:3px;position:relative;margin-top:6px;">'
+            f'border-radius:3px;position:relative;">'
             f'<div style="position:absolute;top:-4px;left:{marker_pos}%;width:4px;height:14px;'
             f'background:white;border-radius:2px;box-shadow:0 0 4px rgba(255,255,255,0.5);"></div></div>'
+            f'<div style="display:flex;justify-content:space-between;font-size:10px;color:{COLORS["text_muted"]};margin-top:4px;">'
+            f'<span>0</span><span>100</span></div></div>'
         )
 
     html = (
@@ -92,6 +104,7 @@ def kpi_card(title: str, value: Any, subtitle: str = "", delta: str = "",
         f'text-align:center;height:100%;">'
         f'<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;'
         f'color:{COLORS["text_muted"]};margin-bottom:8px;">{title}</div>'
+        f'{scale_html}'
         f'<div style="font-size:36px;font-weight:700;color:{value_color};margin:4px 0;">{value}{unit}</div>'
         f'{level_html}{delta_html}{subtitle_html}{bar_html}</div>'
     )
@@ -99,18 +112,34 @@ def kpi_card(title: str, value: Any, subtitle: str = "", delta: str = "",
 
 
 def alert_banner(level: str, reason: str):
-    """Render colored alert banner."""
-    colors = ALERT_COLORS.get(level, ALERT_COLORS["WATCH"])
-    icons = {"WATCH": "👁️", "WARNING": "⚠️", "EMERGENCY": "🚨"}
+    """Render colored alert banner with threshold legend."""
+    colors = ALERT_COLORS.get(level, ALERT_COLORS.get("WATCH", {"bg": "#1a237e20", "border": "#42a5f5", "text": "#42a5f5"}))
+    icons = {"NORMAL": "✅", "WATCH": "👁️", "WARNING": "⚠️", "EMERGENCY": "🚨"}
     icon = icons.get(level, "ℹ️")
+
+    # Threshold legend items
+    legend_items = [
+        ("✅", "NORMAL", "0–34", "#4caf50"),
+        ("👁️", "WATCH", "35–69", "#42a5f5"),
+        ("⚠️", "WARNING", "70–84", "#ff9800"),
+        ("🚨", "EMERGENCY", "85–100", "#f44336"),
+    ]
+    legend_html = "".join([
+        f'<span style="display:inline-flex;align-items:center;gap:3px;margin-right:14px;'
+        f'font-size:11px;color:{c};{"font-weight:700;text-decoration:underline;" if lbl == level else "opacity:0.7;"}'
+        f'">{ic} {lbl} ({rng})</span>'
+        for ic, lbl, rng, c in legend_items
+    ])
 
     html = (
         f'<div style="background:{colors["bg"]};border:2px solid {colors["border"]};'
-        f'border-radius:10px;padding:14px 20px;margin-bottom:16px;font-weight:600;'
-        f'display:flex;align-items:center;gap:12px;">'
+        f'border-radius:10px;padding:14px 20px;margin-bottom:16px;font-weight:600;">'
+        f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">'
         f'<span style="font-size:24px;">{icon}</span>'
         f'<div><span style="color:{colors["text"]};font-size:18px;font-weight:700;">{level}</span>'
         f'<span style="color:{COLORS["text_secondary"]};margin-left:12px;">{reason}</span></div></div>'
+        f'<div style="display:flex;flex-wrap:wrap;padding-top:6px;border-top:1px solid {COLORS["border"]};">{legend_html}</div>'
+        f'</div>'
     )
     st.markdown(html, unsafe_allow_html=True)
 
@@ -202,9 +231,15 @@ def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[st
 
     """Render the actions panel with tabs and action rows."""
     st.markdown(
-        f'<div style="color:{COLORS["text_primary"]};font-size:16px;font-weight:600;margin-bottom:12px;'
+        f'<div style="margin-bottom:12px;">'
+        f'<div style="color:{COLORS["text_primary"]};font-size:16px;font-weight:600;margin-bottom:6px;'
         f'padding-bottom:6px;border-bottom:2px solid {COLORS["accent_blue"]};display:inline-block;">'
-        f'🎯 Action Recommendations (Next 72 Hours)</div>',
+        f'🎯 Action Recommendations (Next 72 Hours)</div>'
+        f'<div style="display:flex;gap:12px;font-size:11px;color:{COLORS["text_secondary"]}; background:{COLORS["bg_card"]}80; padding:6px 12px; border-radius:6px; border:1px solid {COLORS["border"]};">'
+        f'<span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f44336;"></span> <b>High:</b> Emergency / Warning</span>'
+        f'<span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ff9800;"></span> <b>Med:</b> Watch</span>'
+        f'<span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4caf50;"></span> <b>Low:</b> Normal</span>'
+        f'</div></div>',
         unsafe_allow_html=True,
     )
 
@@ -224,10 +259,19 @@ def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[st
                 else:
                     badge_bg, badge_border = "#4caf5020", "#4caf5040"
 
+                trigger = action.get("trigger", "")
+                trigger_html = ""
+                if trigger:
+                    trigger_html = (
+                        f'<div style="font-size:10px;color:{COLORS["text_muted"]};margin-top:4px;'
+                        f'padding-top:4px;border-top:1px solid {COLORS["border"]};font-style:italic;">'
+                        f'⚡ {trigger}</div>'
+                    )
+
                 html = (
                     f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};'
-                    f'border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;'
-                    f'justify-content:space-between;align-items:center;">'
+                    f'border-radius:8px;padding:12px 16px;margin-bottom:8px;">'
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;">'
                     f'<div style="flex:1;"><span style="color:{sev_color};margin-right:8px;">●</span>'
                     f'<span style="color:{COLORS["text_primary"]};font-size:13px;font-weight:500;">{action["action"]}</span></div>'
                     f'<div style="display:flex;gap:6px;flex-shrink:0;">'
@@ -238,6 +282,7 @@ def actions_panel(actions_by_tab: Dict[str, List[Dict[str, Any]]], kpis: Dict[st
                     f'<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;'
                     f'font-weight:600;background:#9c27b020;color:#ce93d8;border:1px solid #9c27b040;">{action["eta"]}</span>'
                     f'</div></div>'
+                    f'{trigger_html}</div>'
                 )
                 st.markdown(html, unsafe_allow_html=True)
 
@@ -330,18 +375,75 @@ def trend_chart_micro(df_micro: pd.DataFrame):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def drivers_footer(drivers: List[str]):
-    """Render primary drivers strip at the bottom."""
-    tags = " ".join([
-        f'<span style="display:inline-block;background:#42a5f515;color:{COLORS["accent_cyan"]};'
-        f'padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;margin:2px 4px;'
-        f'border:1px solid #42a5f530;">{d}</span>'
-        for d in drivers
-    ])
+def drivers_footer(drivers):
+    """Render primary risk drivers section — XAI explainability panel.
+    Accepts either list of strings (legacy) or list of dicts with rich data.
+    """
+    if not drivers:
+        return
+
+    # Handle both old (list of strings) and new (list of dicts) format
+    if isinstance(drivers[0], str):
+        # Legacy format — simple tags
+        tags = " ".join([
+            f'<span style="display:inline-block;background:#42a5f515;color:{COLORS["accent_cyan"]};'
+            f'padding:4px 12px;border-radius:16px;font-size:12px;font-weight:500;margin:2px 4px;'
+            f'border:1px solid #42a5f530;">{d}</span>'
+            for d in drivers
+        ])
+        html = (
+            f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};'
+            f'border-radius:10px;padding:12px 20px;margin-top:16px;">'
+            f'<span style="color:{COLORS["text_muted"]};font-size:12px;font-weight:600;margin-right:12px;">'
+            f'Primary Drivers:</span>{tags}</div>'
+        )
+        st.markdown(html, unsafe_allow_html=True)
+        return
+
+    # Rich XAI format
+    rows_html = ""
+    for d in drivers:
+        name = d.get("name", "")
+        value = d.get("value", "")
+        change = d.get("change_pct", 0)
+        direction = d.get("direction", "→")
+
+        # Color based on direction
+        if change > 5:
+            change_color = COLORS["risk_high"]
+        elif change > 0:
+            change_color = COLORS["risk_med"]
+        elif change < -5:
+            change_color = COLORS["risk_low"]
+        else:
+            change_color = COLORS["text_secondary"]
+
+        change_text = f"{direction} {change:+.1f}%" if change != 0 else "→ stable"
+
+        rows_html += (
+            f'<div style="display:flex;align-items:center;justify-content:space-between;'
+            f'padding:8px 0;border-bottom:1px solid {COLORS["border"]};gap:12px;">'
+            f'<span style="color:{COLORS["text_primary"]};font-size:13px;font-weight:500;flex:1;">{name}</span>'
+            f'<span style="color:{COLORS["accent_cyan"]};font-size:13px;font-weight:600;min-width:80px;text-align:right;">{value}</span>'
+            f'<span style="color:{change_color};font-size:12px;font-weight:600;min-width:70px;text-align:right;">{change_text}</span>'
+            f'</div>'
+        )
+
     html = (
         f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};'
-        f'border-radius:10px;padding:12px 20px;margin-top:16px;">'
-        f'<span style="color:{COLORS["text_muted"]};font-size:12px;font-weight:600;margin-right:12px;">'
-        f'Primary Drivers:</span>{tags}</div>'
+        f'border-radius:10px;padding:16px 20px;margin-top:16px;">'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        f'<span style="font-size:14px;">🔍</span>'
+        f'<span style="color:{COLORS["text_primary"]};font-size:14px;font-weight:600;">Primary Risk Drivers (Period Trend)</span>'
+        f'</div>'
+        f'<div style="font-size:10px;color:{COLORS["text_muted"]};font-style:italic;margin-bottom:10px;">'
+        f'Ranked by contribution to composite risk index (last 72h) — Explainable AI • Model Transparency</div>'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:6px;'
+        f'border-bottom:2px solid {COLORS["border"]};margin-bottom:4px;">'
+        f'<span style="color:{COLORS["text_muted"]};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;flex:1;">Signal</span>'
+        f'<span style="color:{COLORS["text_muted"]};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;min-width:80px;text-align:right;">Latest</span>'
+        f'<span style="color:{COLORS["text_muted"]};font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;min-width:70px;text-align:right;">Change</span>'
+        f'</div>'
+        f'{rows_html}</div>'
     )
     st.markdown(html, unsafe_allow_html=True)

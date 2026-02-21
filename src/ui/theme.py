@@ -31,6 +31,7 @@ COLORS = {
 
 # Alert level colors
 ALERT_COLORS = {
+    "NORMAL": {"bg": "#4caf5015", "border": "#4caf50", "text": "#66bb6a"},
     "WATCH": {"bg": "#ff980015", "border": "#ff9800", "text": "#ffa726"},
     "WARNING": {"bg": "#ff572215", "border": "#ff5722", "text": "#ff7043"},
     "EMERGENCY": {"bg": "#d5000015", "border": "#d50000", "text": "#ef5350"},

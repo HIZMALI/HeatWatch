@@ -8,9 +8,11 @@ forecast:
   default_days: 7
 
 thresholds:
+  normal_heat_risk: 35
   watch_heat_risk: 55
   warning_heat_risk: 70
   emergency_heat_risk: 85
+  normal_surge_prob: 20
   watch_surge_prob: 35
   warning_surge_prob: 55
   emergency_surge_prob: 70

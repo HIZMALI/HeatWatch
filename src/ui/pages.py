@@ -42,6 +42,7 @@ def render_overview(kpis: Dict[str, Any], df_env: pd.DataFrame,
             level=hr.get("level", ""),
             delta=f"↑ +{hr.get('delta_48h', 0)} / 48h",
             bar_value=hr.get("value", 0),
+            scale_hint="Scale: 0–100 normalized composite index",
         )
 
     with cols[1]:
@@ -53,6 +54,7 @@ def render_overview(kpis: Dict[str, Any], df_env: pd.DataFrame,
             subtitle=sp.get("subtitle", ""),
             delta=f"↑ +{sp.get('delta_48h', 0)} / 48h",
             bar_value=sp.get("value_pct", 0),
+            scale_hint="Probability (%), model-calibrated (0–100)",
         )
 
     with cols[2]:
@@ -63,6 +65,7 @@ def render_overview(kpis: Dict[str, Any], df_env: pd.DataFrame,
             value=cs.get("value", 0),
             subtitle=conv_text,
             bar_value=int(cs.get("value", 0) * 100),
+            scale_hint="Scale: 0.0–1.0 weighted fusion",
         )
 
     with cols[3]:
@@ -73,12 +76,13 @@ def render_overview(kpis: Dict[str, Any], df_env: pd.DataFrame,
             unit="%",
             subtitle=f"Peak: {icu.get('peak_date', 'N/A')}",
             bar_value=int(icu.get("icu_strain_pct", 0) * 2.5),  # scale 0-40 to 0-100
+            scale_hint="ICU strain %, projected (0–40)",
         )
 
     with cols[4]:
         al = kpi_data.get("alert_level", {})
         alert_val = al.get("value", "WATCH")
-        bar_val = {"WATCH": 40, "WARNING": 70, "EMERGENCY": 95}.get(alert_val, 40)
+        bar_val = {"NORMAL": 15, "WATCH": 40, "WARNING": 70, "EMERGENCY": 95}.get(alert_val, 15)
         kpi_card(
             title="Alert Level",
             value=alert_val,
@@ -112,7 +116,7 @@ def render_overview(kpis: Dict[str, Any], df_env: pd.DataFrame,
         )
         icu_strain = kpi_data.get("icu_dual_load_risk", {}).get("icu_strain_pct", 15)
 
-        all_actions = get_all_actions(alert_level, drivers_list, top_districts, icu_strain)
+        all_actions = get_all_actions(alert_level, drivers_list, top_districts, icu_strain, kpis)
         actions_panel(all_actions, kpis)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -385,7 +389,7 @@ def render_actions_playbooks(kpis: Dict[str, Any], df_vuln: pd.DataFrame):
     )
     icu_strain = kpi_data.get("icu_dual_load_risk", {}).get("icu_strain_pct", 15)
 
-    all_actions = get_all_actions(alert_level, drivers_list, top_districts, icu_strain)
+    all_actions = get_all_actions(alert_level, drivers_list, top_districts, icu_strain, kpis)
     actions_panel(all_actions, kpis)
 
     st.markdown("---")
@@ -548,15 +552,19 @@ def render_settings(kpis: Dict[str, Any]):
 
     st.markdown(f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};border-radius:12px;padding:24px;margin-top:16px;"><h4 style="color:{COLORS["text_primary"]};margin:0;">🎨 Threshold Configuration</h4></div>', unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
+        st.number_input("NORMAL — Heat Risk <", value=35, key="thresh_normal_heat")
+        st.number_input("NORMAL — Surge Prob <", value=20, key="thresh_normal_surge")
+    with col2:
         st.number_input("WATCH — Heat Risk ≥", value=55, key="thresh_watch_heat")
         st.number_input("WATCH — Surge Prob ≥", value=35, key="thresh_watch_surge")
-    with col2:
+    with col3:
         st.number_input("WARNING — Heat Risk ≥", value=70, key="thresh_warn_heat")
         st.number_input("WARNING — Surge Prob ≥", value=55, key="thresh_warn_surge")
-    with col3:
+    with col4:
         st.number_input("EMERGENCY — Heat Risk ≥", value=85, key="thresh_emerg_heat")
         st.number_input("EMERGENCY — ICU Strain ≥", value=30, key="thresh_emerg_icu")
 
+    st.caption("All thresholds operate on a 0–100 normalized scale unless otherwise stated. ICU Strain is expressed as a percentage (0–40%).")
     st.info("ℹ️ Settings changes are for demo purposes only and will reset on page reload.")

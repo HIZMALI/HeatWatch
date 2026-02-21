@@ -148,56 +148,94 @@ def compute_alert_level(
     if heat_resp_risk >= thresholds["watch_heat_risk"] or surge_prob >= thresholds["watch_surge_prob"]:
         return {"value": "WATCH", "reason": "Elevated Indicators"}
 
-    return {"value": "WATCH", "reason": "Baseline Monitoring"}
+    return {"value": "NORMAL", "reason": "All indicators within normal range"}
 
 
 def identify_drivers(
     df_env: pd.DataFrame,
     df_micro: pd.DataFrame,
-    top_n: int = 3,
-) -> List[str]:
+    top_n: int = 5,
+) -> List[Dict[str, Any]]:
     """
     Identify top risk drivers based on data patterns.
+    Returns list of dicts with name, value, change_pct, direction.
+    Always returns at least top_n items so the section is never empty.
     """
-    drivers = []
-    scores = {}
+    drivers_scored = []
 
     # Latest values (last row)
     latest_env = df_env.iloc[-1]
     latest_micro = df_micro.iloc[-1]
 
-    # Nighttime heat
-    if latest_env["nighttime_temp_c"] >= 22:
-        scores["Nighttime Heat"] = latest_env["nighttime_temp_c"]
+    # Helper: compute % change between start and end of period
+    def _pct_change(series):
+        if len(series) < 2:
+            return 0.0
+        early = series.iloc[:max(1, len(series)//3)].mean()
+        late = series.iloc[-max(1, len(series)//3):].mean()
+        if early == 0:
+            return 0.0
+        return round((late - early) / early * 100, 1)
 
-    # PM2.5
-    if latest_env["pm25_ugm3"] >= 35:
-        scores["PM2.5"] = latest_env["pm25_ugm3"]
+    # --- Environmental drivers (always included) ---
+    temp_change = _pct_change(df_env["temp_c"])
+    drivers_scored.append({
+        "name": "Daytime Temperature",
+        "value": f"{float(latest_env['temp_c']):.1f}°C",
+        "change_pct": temp_change,
+        "direction": "↑" if temp_change > 0 else ("↓" if temp_change < 0 else "→"),
+        "score": abs(temp_change) + (20 if latest_env["temp_c"] >= 35 else 0),
+    })
 
-    # Check for spikes (compare last 2 days vs first 2 days)
-    if len(df_micro) >= 4:
-        early_pharmacy = df_micro["pharmacy_visits_index"].iloc[:2].mean()
-        late_pharmacy = df_micro["pharmacy_visits_index"].iloc[-2:].mean()
-        if late_pharmacy > early_pharmacy * 1.3:
-            scores["Pharmacy Spike"] = late_pharmacy - early_pharmacy
+    night_change = _pct_change(df_env["nighttime_temp_c"])
+    drivers_scored.append({
+        "name": "Night-time Temperature",
+        "value": f"{float(latest_env['nighttime_temp_c']):.1f}°C",
+        "change_pct": night_change,
+        "direction": "↑" if night_change > 0 else ("↓" if night_change < 0 else "→"),
+        "score": abs(night_change) + (25 if latest_env["nighttime_temp_c"] >= 22 else 0),
+    })
 
-        early_search = df_micro["symptom_search_index"].iloc[:2].mean()
-        late_search = df_micro["symptom_search_index"].iloc[-2:].mean()
-        if late_search > early_search * 1.3:
-            scores["Search Spike"] = late_search - early_search
+    pm25_change = _pct_change(df_env["pm25_ugm3"])
+    drivers_scored.append({
+        "name": "PM2.5 Air Quality",
+        "value": f"{float(latest_env['pm25_ugm3']):.1f} µg/m³",
+        "change_pct": pm25_change,
+        "direction": "↑" if pm25_change > 0 else ("↓" if pm25_change < 0 else "→"),
+        "score": abs(pm25_change) + (20 if latest_env["pm25_ugm3"] >= 35 else 0),
+    })
 
-        early_clinic = df_micro["clinic_cases_index"].iloc[:2].mean()
-        late_clinic = df_micro["clinic_cases_index"].iloc[-2:].mean()
-        if late_clinic > early_clinic * 1.3:
-            scores["Clinical Uptick"] = late_clinic - early_clinic
+    # --- Micro-signal drivers (always included) ---
+    search_change = _pct_change(df_micro["symptom_search_index"])
+    drivers_scored.append({
+        "name": "Symptom Search Index",
+        "value": f"{float(latest_micro['symptom_search_index']):.1f}",
+        "change_pct": search_change,
+        "direction": "↑" if search_change > 0 else ("↓" if search_change < 0 else "→"),
+        "score": abs(search_change),
+    })
 
-    # Daytime heat
-    if latest_env["temp_c"] >= 35:
-        scores["Daytime Heat"] = latest_env["temp_c"]
+    pharmacy_change = _pct_change(df_micro["pharmacy_visits_index"])
+    drivers_scored.append({
+        "name": "Pharmacy Respiratory Sales",
+        "value": f"{float(latest_micro['pharmacy_visits_index']):.1f}",
+        "change_pct": pharmacy_change,
+        "direction": "↑" if pharmacy_change > 0 else ("↓" if pharmacy_change < 0 else "→"),
+        "score": abs(pharmacy_change),
+    })
 
-    # Sort by magnitude and return top N
-    sorted_drivers = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return [d[0] for d in sorted_drivers[:top_n]]
+    clinic_change = _pct_change(df_micro["clinic_cases_index"])
+    drivers_scored.append({
+        "name": "Clinic Respiratory Cases",
+        "value": f"{float(latest_micro['clinic_cases_index']):.1f}",
+        "change_pct": clinic_change,
+        "direction": "↑" if clinic_change > 0 else ("↓" if clinic_change < 0 else "→"),
+        "score": abs(clinic_change),
+    })
+
+    # Sort by impact score descending
+    drivers_scored.sort(key=lambda x: x["score"], reverse=True)
+    return drivers_scored[:top_n]
 
 
 def _get_risk_level(value: int) -> str:
@@ -308,6 +346,12 @@ def compute_all_kpis(
             "alert_level": alert,
         },
         "drivers": drivers,
+        "sub_scores": {
+            "heat_score": round(heat_score, 1),
+            "pollution_score": round(pollution_score, 1),
+            "micro_signal_score": round(micro_signal_score, 1),
+            "avg_vulnerability": round(avg_vulnerability, 1),
+        },
     }
 
     return kpi_json
